@@ -1,0 +1,6 @@
+@Seem.Api_HostAddress = http://localhost:5022
+
+GET {{Seem.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

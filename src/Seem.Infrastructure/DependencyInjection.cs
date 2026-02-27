@@ -27,6 +27,9 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SeemDbContext>());
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<SeemDbContext>());
         services.AddSingleton<IDateTime, DateTimeService>();
+        services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddScoped<ICurrentUser, CurrentUserService>();
 
         return services;
     }

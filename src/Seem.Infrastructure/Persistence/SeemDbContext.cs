@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Seem.Application.Common.Interfaces;
+using Seem.Domain.Common;
 using Seem.Domain.Entities.Automation;
 using Seem.Domain.Entities.KnowledgeBase;
 using Seem.Domain.Entities.Shared;
@@ -30,6 +31,7 @@ public class SeemDbContext : DbContext, IApplicationDbContext, IUnitOfWork
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Ignore<DomainEvent>();
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SeemDbContext).Assembly);
         base.OnModelCreating(modelBuilder);
     }

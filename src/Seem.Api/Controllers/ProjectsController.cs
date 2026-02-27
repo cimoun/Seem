@@ -1,49 +1,68 @@
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Seem.Application.Common.Interfaces;
+using Seem.Application.Features.Projects.Commands.ArchiveProject;
+using Seem.Application.Features.Projects.Commands.CreateProject;
+using Seem.Application.Features.Projects.Commands.UpdateProject;
+using Seem.Application.Features.Projects.DTOs;
+using Seem.Application.Features.Projects.Queries.GetProject;
+using Seem.Application.Features.Projects.Queries.ListProjects;
 
 namespace Seem.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ProjectsController : ControllerBase
 {
-    private readonly IApplicationDbContext _context;
+    private readonly IMediator _mediator;
 
-    public ProjectsController(IApplicationDbContext context)
+    public ProjectsController(IMediator mediator)
     {
-        _context = context;
+        _mediator = mediator;
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(List<ProjectDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var projects = await _context.Projects
-            .Select(p => new
-            {
-                p.Id,
-                p.Name,
-                p.Description,
-                p.Key,
-                p.IsArchived,
-                p.CreatedAt,
-                TaskCount = p.Tasks.Count()
-            })
-            .ToListAsync(cancellationToken);
-
-        return Ok(new { data = projects });
+        var result = await _mediator.Send(new ListProjectsQuery(), cancellationToken);
+        return Ok(new { data = result });
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var project = await _context.Projects
-            .Include(p => p.Boards)
-            .ThenInclude(b => b.Columns)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        var result = await _mediator.Send(new GetProjectQuery(id), cancellationToken);
+        return Ok(new { data = result });
+    }
 
-        if (project == null) return NotFound();
+    [HttpPost]
+    [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create([FromBody] CreateProjectCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, new { data = result });
+    }
 
-        return Ok(new { data = project });
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectCommand command, CancellationToken cancellationToken)
+    {
+        var commandWithId = command with { Id = id };
+        var result = await _mediator.Send(commandWithId, cancellationToken);
+        return Ok(new { data = result });
+    }
+
+    [HttpPatch("{id:guid}/archive")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Archive(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new ArchiveProjectCommand { Id = id }, cancellationToken);
+        return NoContent();
     }
 }

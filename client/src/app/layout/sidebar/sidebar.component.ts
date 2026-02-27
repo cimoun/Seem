@@ -1,7 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
+import { Project } from '../../core/models/project.model';
+import { ProjectService } from '../../core/services/project.service';
 
 interface NavItem {
   label: string;
@@ -12,7 +15,7 @@ interface NavItem {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, MatListModule, MatIconModule],
+  imports: [RouterLink, RouterLinkActive, MatListModule, MatIconModule, MatDividerModule],
   template: `
     <div class="sidebar">
       <div class="logo">
@@ -26,6 +29,22 @@ interface NavItem {
           </a>
         }
       </mat-nav-list>
+
+      @if (projects.length > 0) {
+        <mat-divider></mat-divider>
+        <div class="section-header">Projects</div>
+        <mat-nav-list dense>
+          @for (project of projects; track project.id) {
+            <a mat-list-item
+               [routerLink]="getProjectBoardRoute(project)"
+               routerLinkActive="active">
+              <span class="project-color" matListItemIcon
+                    [style.background]="project.color"></span>
+              <span matListItemTitle>{{ project.name }}</span>
+            </a>
+          }
+        </mat-nav-list>
+      }
     </div>
   `,
   styles: [`
@@ -36,6 +55,7 @@ interface NavItem {
       border-right: 1px solid #e0e0e0;
       display: flex;
       flex-direction: column;
+      overflow-y: auto;
     }
     .logo {
       padding: 16px 24px;
@@ -46,9 +66,24 @@ interface NavItem {
       background: rgba(0, 0, 0, 0.04);
       font-weight: 500;
     }
+    .section-header {
+      padding: 16px 24px 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+    }
+    .project-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
   `],
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
   navItems: NavItem[] = [
     { label: 'Tasks', icon: 'task_alt', route: '/tasks' },
     { label: 'Projects', icon: 'folder', route: '/projects' },
@@ -57,4 +92,23 @@ export class SidebarComponent {
     { label: 'Workflows', icon: 'account_tree', route: '/workflows' },
     { label: 'Settings', icon: 'settings', route: '/settings' },
   ];
+
+  projects: Project[] = [];
+
+  constructor(private projectService: ProjectService) {}
+
+  ngOnInit(): void {
+    this.projectService.getAll().subscribe({
+      next: (projects) => {
+        this.projects = projects.filter(p => !p.isArchived);
+      },
+    });
+  }
+
+  getProjectBoardRoute(project: Project): string {
+    if (project.boards && project.boards.length > 0) {
+      return `/boards/${project.boards[0].id}`;
+    }
+    return `/projects`;
+  }
 }

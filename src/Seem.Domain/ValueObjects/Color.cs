@@ -7,11 +7,11 @@ public partial record Color
 {
     public string HexValue { get; }
 
-    public Color(string hex)
+    public Color(string hexValue)
     {
-        if (!HexColorRegex().IsMatch(hex))
-            throw new DomainException($"Invalid hex color: {hex}");
-        HexValue = hex;
+        if (!HexColorRegex().IsMatch(hexValue))
+            throw new DomainException($"Invalid hex color: {hexValue}");
+        HexValue = hexValue;
     }
 
     public static implicit operator string(Color color) => color.HexValue;
